@@ -2,10 +2,18 @@ if exists('b:current_syntax')
     finish
 endif
 
-syn match gitmessengerHeader '^ \=\%(History\|Commit\|\%(Author \|Committer \)\=Date\|Author\|Committer\):' display
-syn match gitmessengerHash '\%(^ \=Commit: \+\)\@<=[[:xdigit:]]\+' display
-syn match gitmessengerHistory '\%(^ \=History: \+\)\@<=#\d\+' display
-syn match gitmessengerEmail '\%(^ \=\%(Author\|Committer\): \+.*\)\@<=<.\+>' display
+if g:git_messenger_popup_content_margins
+    let margin_pat = '^ '
+else
+    let margin_pat = '^'
+endif
+
+syn sync fromstart
+
+exe 'syn match gitmessengerHeader "' . margin_pat . '\%(History\|Commit\|\%(Author \|Committer \)\=Date\|Author\|Committer\):" display'
+exe 'syn match gitmessengerHash "\%(' . margin_pat . 'Commit: \+\)\@<=[[:xdigit:]]\+" display'
+exe 'syn match gitmessengerHistory "\%(' . margin_pat . 'History: \+\)\@<=#\d\+" display'
+exe 'syn match gitmessengerEmail "\%(' . margin_pat . '\%(Author\|Committer\): \+.*\)\@<=<.\+>" display'
 
 " Diff included in popup
 " There are two types of diff format; 'none' 'current', 'all', 'current.word', 'all.word'.
@@ -21,15 +29,17 @@ if get(b:, '__gitmessenger_diff', '') =~# '\.word$'
         syn region diffWordsAdded start=/{+/ end=/+}/ oneline
     endif
 else
-    syn match diffRemoved "^ \=-.*" display
-    syn match diffAdded "^ \=+.*" display
+    exe 'syn match diffRemoved "' . margin_pat . '-.*" contained containedin=gitDiff display'
+    exe 'syn match diffAdded "' . margin_pat . '+.*" contained containedin=gitDiff display'
 endif
 
-syn match diffFile "^ \=diff --git .*" display
-syn match diffOldFile "^ \=--- a\>.*" display
-syn match diffNewFile "^ \=+++ b\>.*" display
-syn match diffIndexLine "^ \=index \x\{7,}\.\.\x\{7,}.*" display
-syn match diffLine "^ \=@@ .*" display
+exe 'syn match diffFile "' . margin_pat . 'diff --git .*" display'
+exe 'syn match diffOldFile "' . margin_pat . '--- \(a\>.*\|/dev/null\)" display'
+exe 'syn match diffNewFile "' . margin_pat . '+++ \(b\>.*\|/dev/null\)" display'
+exe 'syn match diffIndexLine "' . margin_pat . 'index \x\{7,}\.\.\x\{7,}.*" display'
+exe 'syn match diffLine "' . margin_pat . '@@ .*" contained containedin=gitDiff display'
+
+exec 'syn region gitDiff start=/' .. margin_pat . '\%(@@ -\)\@=/ end=/' . margin_pat . '\%(diff --git \|$\)\@=/ contains=diffRemoved,diffAdded,diffLine'
 
 hi def link gitmessengerHeader      Identifier
 hi def link gitmessengerHash        Comment
